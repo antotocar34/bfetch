@@ -4,12 +4,15 @@ import time
 import re
 import csv
 import logging
+from typing import List
+
 from pathlib import Path
 
 from selenium.common.exceptions import (
     InvalidArgumentException,
     UnexpectedAlertPresentException,
 )
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -69,7 +72,7 @@ def follow_node(browser, node) -> None:
     get_request(browser, node.file.url)
 
 
-def tag_to_node(tag, kind: str) -> Node:
+def tag_to_node(tag: Tag, kind: str) -> Node:
     name = normalize_name(tag.text)
     url = make_wfu(str(tag["href"]))
     file_obj = File(name, url, kind)
@@ -77,7 +80,7 @@ def tag_to_node(tag, kind: str) -> Node:
 
 
 
-def download_file(browser, node: Node) -> None:
+def download_file(browser: WebDriver, node: Node) -> None:
     """
     Downloads file_node.
     """
@@ -101,10 +104,9 @@ def download_file(browser, node: Node) -> None:
     node.file.completed = True
     print(f"DOWNLOADED : {node.file.file_name}")
 
-    TREE.insert(node, TREE.pointer)
 
 
-def files_folders(browser):
+def files_folders(browser: WebDriver):
     pdf_link_tags, folders = find_pdf_links(browser)
 
     for tag in pdf_link_tags:
@@ -127,7 +129,9 @@ def files_folders(browser):
 
         if check_banned:
             # This is where the new pointer is attached.
-            download_file(browser, file_node)
+            # download_file(browser, file_node)
+            TREE.insert(file_node, TREE.pointer)
+            print(f"{file_node.file.name} inserted.")
 
             # Mark the file as have been downloaded
             # Attach back to section node.
@@ -162,7 +166,7 @@ def first_section(browser):
     return
 
 
-def make_tree(browser, module_tags):
+def make_tree(browser: WebDriver, module_tags: List[Tag]):
     """
     Main Function of the program.
     """
@@ -175,9 +179,20 @@ def make_tree(browser, module_tags):
         first_section(browser)
 
         module_node.file.completed = True
+
         # TODO change this
         assert TREE.root == module_node.parent
         TREE.attach_pointer(module_node.parent)
+
+
+def download_file_nodes(browser: WebDriver , tree: FileTree) -> None:
+    file_nodes = [ n
+                   for n in tree.nodes
+                   if n.file.kind == "file" and n.file.completed == False ]
+
+    for n in file_nodes:
+        download_file(browser, n)
+    return None
 
 
 def main():
@@ -191,7 +206,7 @@ def main():
         browser, xpath="""//*[@id="Module List"]/a""", id_string="Module List"
     )
 
-    time.sleep(1)  # TODO write a smart wait function.
+    time.sleep(1)
     module_tags = get_module_tags(browser)
 
     make_tree(browser, module_tags)
@@ -199,12 +214,8 @@ def main():
     browser.quit()
 
 
-if __name__ == "__main__":
-    # TODO rename contents
-    # CONTENTS = read_from_file()
-    CONTENTS = ""
 
-    logging.info(CONTENTS)
+if __name__ == "__main__":
     try:
         main()
     except InvalidArgumentException:
@@ -212,7 +223,7 @@ if __name__ == "__main__":
         main()
     finally:
         TREE.write_to_file()
-        sort_to_folder_from_tree(TREE)
+        # sort_to_folder_from_tree(TREE)
 
         downloaded = [n for n in TREE.nodes if n.file.kind == 'file' and n.file.completed == True]
         print(

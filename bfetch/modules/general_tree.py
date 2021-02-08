@@ -3,6 +3,7 @@ import uuid
 import json
 
 import modules.config as g
+# import config as g
 
 
 class File:
@@ -45,12 +46,12 @@ class File:
 
 
 class Node:
-    def __init__(self, file_object: File, parent: Any =None):
+    def __init__(self, file_object: File):
         self.file = file_object
         self.name = file_object.name
         # Whether this node has been downloaded
 
-        self.parent = None
+        self.parent: Optional[Node] = None
         self.children = []
 
     def __str__(self):
@@ -58,9 +59,6 @@ class Node:
 
     def __eq__(self, other):
         return self.file == other.file
-
-    def add_child(self, node) -> None:
-        self.children.append(node)
 
     @property
     def identifier(self) -> str:
@@ -108,14 +106,10 @@ def check_validity_of_order(child_node: Node, parent_node: Node) -> bool:
 
 class FileTree:
     def __init__(self, nodes: List[Node] = []):
-        assert type(nodes) == list, "You must pass in a list to FileTree"
         self.nodes = nodes
         self.pointer = None
 
-    def __str__(self):
-        return str([node.__str__() for node in self.nodes])
-
-    def add(self, node: Node, parent_node):
+    def add(self, node: Node, parent_node: Optional[Node]) -> None:
 
         if parent_node:
             a = f"\nchild:{node.file.kind}, parent:{parent_node.file.kind}"
@@ -123,9 +117,10 @@ class FileTree:
             c = f"\nchild_type {node.name}, parent: {parent_node.name}"
             assert check_validity_of_order(node, parent_node), a + b + c
 
+            
             if self.nodes != []:
                 node.parent = parent_node
-                parent_node.add_child(node)
+                parent_node.children.append(node)
 
         self.nodes.append(node)
 
@@ -138,8 +133,11 @@ class FileTree:
 
         self.attach_pointer(node)
 
-    def attach_pointer(self, node : Node):
-        self.pointer = node
+    def attach_pointer(self, node : Optional[Node]):
+        if node:
+            self.pointer = node
+        else:
+            return
 
     def get_subtree(self, node: Node):
         return FileTree(self.get_children(node))
@@ -151,11 +149,13 @@ class FileTree:
             S = S + self.get_children(child)
         return S
 
-    def get_index(self, identifier):
+    def get_index(self, identifier: str) -> int:
         """ Searches by identifier, which is usually just the name"""
         for index, node in enumerate(self.nodes):
             if node.name == identifier:
                 return index
+        else:
+            raise KeyError
 
     def __getitem__(self, name: str):
         return self.nodes[self.get_index(name)]
@@ -171,18 +171,29 @@ class FileTree:
     def root(self):
         return self.nodes[0]
 
-    def pprint(self):
-        self.show(self.nodes[0].name)
+    def __str__(self):
+        string = []
 
-    def show(self, name="root", level=0) -> None:
-        queue = self[name].children
-        if level == 0:
-            print(f"{self[name].name}")
-        else:
-            print("\t" * level, f"{self[name].name}")
-        level += 1
-        for element in queue:
-            self.show(element.name, level)  # recursive call
+        def tree_to_string(tree, name="root", level=0) -> None:
+            queue = self[name].children
+            if level == 0:
+                str_name = self[name].name
+                nonlocal string
+                string.append(str_name)
+                # print(f"{self[name].name}")
+            else:
+                str1 = "\t" * level
+                str2 = f"{self[name].name}"
+                str_name = f"{str1} {str2}"
+                string.append(str_name)
+                # print("\t" * level, f"{self[name].name}")
+            level += 1
+            for element in queue:
+                tree_to_string(tree, element.name, level)  # recursive call
+
+        tree_to_string(self)
+        return "\n".join(string)
+
 
     def get_module(self, node) -> Node:
         """
@@ -311,60 +322,3 @@ if __name__ == "__main__":
             },
         }
     }
-
-    structure = Node(File("root", "", "root"))
-    mod = Node(File("economics", "tcd.ie", "module"))
-    sec = Node(File("lectures", "tcd.ie", "section"))
-    sec2 = Node(File("solutions", "tcd.ie", "section"))
-    a = Node(File("hi.pdf", "tcd.ie", "file"))
-    b = Node(File("descartes.pdf", "tcd.ie", "file"))
-    c = Node(File("book.pdf", "tcd.ie", "file"))
-
-    mod2 = Node(File("philosophy", "tcd.ie", "module"))
-    sec3 = Node(File("readings", "tcd.ie", "section"))
-    x = Node(File("hi.pdf", "tcd.ie", "file"))
-    y = Node(File("descartes.pdf", "tcd.ie", "file"))
-    z = Node(File("book.pdf", "tcd.ie", "file"))
-    sec4 = Node(File("plato_readings", "tcd.ie", "section"))
-    f = Node(File("repooblic.pdf", "tcd.ie", "file"))
-    i = Node(File("nichomachean_ethics.pdf", "tcd.ie", "file"))
-    h = Node(File("nafure.pdf", "tcd.ie", "file"))
-
-    t = FileTree()
-    t.insert(structure)
-    t.insert(mod, structure)
-    t.insert(sec, mod)
-    t.insert(a, sec)
-    t.insert(b, sec)
-    t.insert(sec2, sec)
-    t.insert(Node(File("kripke.pdf", "tcd.ie", "file")), sec2)
-    t.insert(mod2, structure)
-    t.insert(sec3, mod2)
-    t.insert(x, sec3)
-    t.insert(y, sec3)
-    t.insert(z, sec3)
-    t.insert(sec4, sec3)
-    t.insert(f, sec4)
-    t.insert(i, sec4)
-    t.insert(h, sec4)
-
-    small = FileTree([Node(File("root", "", "root"))])
-    # small.insert()
-    module = Node(File("module", "tcd.ie", "module"))
-    section = Node(File("notes", "tcd.ie", "section"))
-    node_a = Node(File("a", "tcd.ie", "section"))
-    node_b = Node(File("b", "tcd.ie", "section"))
-    small.insert(module, small.root)
-    small.insert(section, module)
-    small.insert(node_a, section)
-    small.insert(node_b, section)
-    # node_aa = Node(File("aa", "tcd.ie", "section"))
-    # node_ab = Node(File("ab", "tcd.ie", "section"))
-    # small.insert(node_aa, node_a)
-    # small.insert(node_ab, node_a)
-    # smaller.pprint()
-    t.pprint()
-    test = t.dictionary()
-
-    # t.show()
-    t.write_to_file()

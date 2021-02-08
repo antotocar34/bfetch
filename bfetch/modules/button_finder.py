@@ -1,9 +1,13 @@
+from selenium.webdriver.remote.webelement import WebElement
+
+from typing import List, Callable
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
 from .utils import get_request
 
 
-def check_if_button_was_found(button) -> bool:
+def check_if_button_was_found(button: WebElement) -> bool:
     """
     Prints a confirmation if the button element
     was found.
@@ -16,7 +20,9 @@ def check_if_button_was_found(button) -> bool:
         return True
 
 
-def wait_condition(browser, args, associated_methods):
+def wait_condition(
+        browser: WebDriver, args: List[str], associated_methods: List[Callable]
+):
     """
     Returns a condition for the first argument specified.
     """
@@ -26,7 +32,9 @@ def wait_condition(browser, args, associated_methods):
             return condition
 
 
-def smart_wait(browser, args, associated_methods):
+def smart_wait(
+    browser: WebDriver, args: List[str], associated_methods: List[Callable]
+):
     """Waits until an element is found,
     TODO find out exactly what to do here.
     """
@@ -37,7 +45,7 @@ def smart_wait(browser, args, associated_methods):
         pass
 
 
-def find_child_hrefs(button):
+def find_child_hrefs(button: WebElement) -> List[str]:
     children = button.find_elements_by_xpath(".//*")
     hrefs = []
     for child in children:
@@ -50,7 +58,7 @@ def find_child_hrefs(button):
     return hrefs
 
 
-def find_button(browser, id_string="", partial_link="", name="", xpath=""):
+def find_button(browser: WebDriver, id_string: str ="", partial_link: str ="", name: str="", xpath: str =""):
     """browser -> [str] -> button
 
     Finds button by specifying one of the following:
@@ -83,7 +91,7 @@ def find_button(browser, id_string="", partial_link="", name="", xpath=""):
 
 
 def find_and_click_button(
-    browser, id_string="", partial_link="", name="", xpath=""
+        browser: WebDriver, id_string: str ="", partial_link: str ="", name: str ="", xpath: str = ""
 ) -> None:
     """
     Finds a button element and clicks it.

@@ -2,33 +2,15 @@ from typing import Optional
 from modules.general_tree import File, FileTree, Node
 
 import os
-
-try:
-    import modules.config as g
-except:
-    import config as g
-
 from pathlib import Path
 
+import modules.config as g
 
-def newest(path: str=g.DOWNLOAD_PATH):
-    """
-    Retrieves the newest file in
-    the path. Directories are excluded.
-    """
-    files = os.listdir(path)
-    paths = [f"{path}/{f}" for f in next(os.walk(path))[2]]
-    if paths:
-        # Wait until file is downloaded.
-        while max(paths, key=os.path.getctime) is not None:
-            return max(paths, key=os.path.getctime)
-    else:
-        print("Nothing here")
 
 
 def file_node_to_path(tree: FileTree, node: Node) -> str:
     """
-    returns the path from tree node.
+    returns the path from module node to file.
     """
     assert node.file.kind == "file"
     assert node.file.file_name is not None
@@ -62,7 +44,7 @@ def file_node_to_path(tree: FileTree, node: Node) -> str:
 
 
 # TODO investigate how the path should be return with normalized name
-def move_file_to_path(path: str) -> None:
+def move_file_to_path(path: str, new_name: str) -> None:
     """
     Takes a path and moves the name of the file in that path
     and moves dl_dir/file_name to path.
@@ -70,18 +52,20 @@ def move_file_to_path(path: str) -> None:
     # Checks that the path exists.
 
     dl_dir = Path(g.DOWNLOAD_PATH)
-    p = Path(path)
+    p: Path = Path(path)
+    file_name = p.name
+    new_path: Path = p.parent / Path(new_name)
 
     try:
-        assert (dl_dir / p.name).exists()
+        assert (dl_dir / file_name).exists()
 
         if p.parent.exists() == False:
             p.parent.mkdir(parents=True, exist_ok=True)
-            (dl_dir / p.name).replace(p)
+            (dl_dir / file_name).replace(new_path)
         else:
-            (dl_dir / p.name).replace(p)
+            (dl_dir / file_name).replace(new_path)
     except AssertionError:
-        if p.exists():
+        if new_path.exists():
             return
         else:
             print("THERE WAS A POTENTIAL PROBLEM")
@@ -89,8 +73,8 @@ def move_file_to_path(path: str) -> None:
 
 def handle_file_node(tree: FileTree, node: Node) -> None:
     path = file_node_to_path(tree, node)
-    move_file_to_path(path)
     # Moves specific file node ot path
+    move_file_to_path(path, node.file.name)
 
 
 def sort_to_folder_from_tree(tree: FileTree) -> None:

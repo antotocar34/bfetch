@@ -1,15 +1,19 @@
 import logging
 import re
 from typing import Tuple, List, Optional
+from selenium.webdriver.chrome.webdriver import WebDriver
 from bs4.element import Tag
 
-try:
-    from utils import make_soup
-except:
-    from modules.utils import make_soup
+from modules.utils import make_soup
 
 
-def get_content_tags(browser):
+# TODO Make sure this does not happend again.
+#
+# File "/home/carneca/Documents/Python/automation/bfetch/bfetch/modules/html_parser.py", line 15, in get_content_tags
+#     content_tags = soup.find("div", {"class": "navPaletteContent"}).find_all(
+# AttributeError: 'NoneType' object has no attribute 'find_all'
+#
+def get_content_tags(browser: WebDriver) -> List[Tag]:
     """
     TODO WRITE MULTIPLE WAYS OF DOING IT
     """
@@ -20,12 +24,10 @@ def get_content_tags(browser):
     return content_tags
 
 
-def get_module_tags(browser):
+def get_module_tags(browser: WebDriver) -> List[Tag]:
     """
     Get's <a> tags according to
     module name regex.
-
-    browser -> [module_tag]
     """
     regex_for_module_names = "^[A-Z]{2,3}[0-9A-Z]{3,5}.*"
     soup = make_soup(browser)
@@ -34,6 +36,7 @@ def get_module_tags(browser):
     for tag in tags:
         if re.search(regex_for_module_names, str(tag.text)) is not None:
             module_tags.append(tag)
+    assert module_tags != [], "Did not find any module tags."
     return module_tags
 
 
@@ -82,7 +85,7 @@ def match_regex_list(
 
 
 
-def find_pdf_links(browser) -> Tuple[List[Tag], List[Tag]]:
+def find_pdf_links(browser: WebDriver) -> Tuple[List[Tag], List[Tag]]:
     """
     Find the appropriate link tags according to certain features of
     the links themselves, and recognize folders. Make a list of
@@ -103,6 +106,11 @@ def find_pdf_links(browser) -> Tuple[List[Tag], List[Tag]]:
         x.find("a")
         for x in soup.find_all("ul", {"class": "attachments clearfix"})
     ]
+    pdf_link_tags_3 = [
+        x.find("a")
+        for x in soup.find_all() if "pid" in x.href and "xid" in x.href
+    ]
+
     # List of all possibly interesting items.
     pdf_link_tags = pdf_link_tags_1 + pdf_link_tags_2
     # Filter out None.
