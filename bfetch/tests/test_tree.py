@@ -1,6 +1,6 @@
 import unittest
 
-from modules.general_tree import Node, File, FileTree
+from modules.filetree import Node, File, FileTree
 
 
 class TestTree(unittest.TestCase):
@@ -46,8 +46,10 @@ class TestTree(unittest.TestCase):
         """
 
 
-        self.assertTrue(
-                self.test_tree.__str__() == self.good_tree.__str__()
+        # __str__ instance will contain all that is needed for
+        # the tree to work.
+        self.assertEqual(
+                self.test_tree.__str__(), self.good_tree.__str__()
         )
 
         test_dic = {
@@ -85,7 +87,7 @@ class TestTree(unittest.TestCase):
         def test_tree_to_dic(self):
             tree = self.test_tree
             dic = self.test_dic
-            self.assertTrue(tree.dictionary() == dic)
+            self.assertEqual(tree.dictionary(), dic)
 
 
 

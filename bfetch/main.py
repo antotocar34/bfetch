@@ -26,12 +26,12 @@ from modules.arguments import parse_args
 from modules.utils import get_request, make_soup, normalize_name, make_wfu
 
 from modules.html_parser import (
-    find_pdf_links,
+    find_links,
     get_content_tags,
     get_module_tags,
 )
 
-from modules.general_tree import FileTree, Node, File
+from modules.filetree import FileTree, Node, File
 
 
 def init_tree() -> FileTree:
@@ -64,7 +64,7 @@ log_file = g.DATA_DIR + "/selenium_blackboard.log"
 logging.basicConfig(filename=log_file, level=logging.INFO, filemode="w")
 
 
-def follow_node(browser, node) -> None:
+def follow_node(browser: WebDriver, node: Node) -> None:
     """
     Get request the URL and adds the node to the tree.
     """
@@ -98,6 +98,7 @@ def download_file(browser: WebDriver, node: Node) -> None:
             # while `files` is being evaluated.
             continue
 
+        # file_path: Path
         _, file_path = max(files)
 
     node.file.file_name = file_path.name
@@ -107,12 +108,13 @@ def download_file(browser: WebDriver, node: Node) -> None:
 
 
 def files_folders(browser: WebDriver):
-    pdf_link_tags, folders = find_pdf_links(browser)
+    pdf_link_tags, folders = find_links(browser)
 
     for tag in pdf_link_tags:
 
         file_node = tag_to_node(tag, "file")
 
+        # This should be done at an earlier stage.
         banned_strings = [
             "turnitin",
             "launchAssessment",
@@ -151,7 +153,11 @@ def files_folders(browser: WebDriver):
 
 
 def first_section(browser):
-    content_tags = get_content_tags(browser)
+    try:
+        content_tags = get_content_tags(browser)
+    except AssertionError:
+        print("found no content tags.")
+        return
     for tag in content_tags:
 
         panel_node = tag_to_node(tag, "section")
@@ -169,6 +175,7 @@ def first_section(browser):
 def make_tree(browser: WebDriver, module_tags: List[Tag]):
     """
     Main Function of the program.
+    Recursively goes through blackboard file structure.
     """
     for tag in module_tags:
 
@@ -186,6 +193,9 @@ def make_tree(browser: WebDriver, module_tags: List[Tag]):
 
 
 def download_file_nodes(browser: WebDriver , tree: FileTree) -> None:
+    """
+    Goes through the tree and downloads nodes that have not been downloaded.
+    """
     file_nodes = [ n
                    for n in tree.nodes
                    if n.file.kind == "file" and n.file.completed == False ]
@@ -205,8 +215,9 @@ def main():
     find_and_click_button(
         browser, xpath="""//*[@id="Module List"]/a""", id_string="Module List"
     )
-
+    # DO NOT REMOVE
     time.sleep(1)
+
     module_tags = get_module_tags(browser)
 
     make_tree(browser, module_tags)

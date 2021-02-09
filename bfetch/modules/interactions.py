@@ -1,19 +1,29 @@
+import getpass
 from time import sleep
 import sys
+from typing import Tuple
 
-from modules.button_finder import find_and_click_button
-from modules.utils import make_soup, get_request
+from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import TimeoutException
 from bs4.element import Tag
 
-def init_login_info(browser, uname_form_id, pword_form_id):
+from modules.button_finder import find_and_click_button
+from modules.utils import make_soup, get_request
+
+
+def init_login_info(
+    browser: WebDriver, uname_form_id: str, pword_form_id: str
+) -> Tuple[WebElement, WebElement]:
     """Finds login form."""
     username_form = browser.find_elements_by_id(uname_form_id)[0]
     password_form = browser.find_elements_by_id(pword_form_id)[0]
     return username_form, password_form
 
 
-def type_login_info(browser, uname_form, pword_form):
+def type_login_info(browser: WebDriver,
+                    uname_form: WebElement,
+                    pword_form: WebElement) -> None:
     """Sends username and password to login form."""
     try:
         from modules.secretss import username, password
@@ -22,15 +32,15 @@ def type_login_info(browser, uname_form, pword_form):
         message_p = "Please enter you blackboard password."
         prompt = "> "
         username = input(message_u + "\n" + prompt)
-        password = input(message_p + "\n" + prompt)
+        password = getpass.getpass(prompt=f"{message_p}\n{prompt}", stream=None) 
 
     uname_form.send_keys(username)
     pword_form.send_keys(password)
 
 
-def log_in(browser):
+def log_in(browser: WebDriver):
     print("Get request for blackboard")
-    get_request(browser, 'https://tcd.blackboard.com/')
+    get_request(browser, "https://tcd.blackboard.com/")
     print("Get request accepted")
 
     # Todo add redundancies.
@@ -46,15 +56,14 @@ def log_in(browser):
     type_login_info(browser, username_form, password_form)
 
     try:
-        find_and_click_button(browser, name='_eventId_proceed')
+        find_and_click_button(browser, name="_eventId_proceed")
     except Exception as e:
         print(f"Could not find Login Button: {e}\n Exiting the Program...")
-        sleep(2) 
+        sleep(2)
         sys.exit()
     print("Succesfully Logged In!")
 
-
-    agree_button_id = 'agree_button'
+    agree_button_id = "agree_button"
     try:
         # Lookout for agree to conditions button.
         # Press the agree to conditions button.

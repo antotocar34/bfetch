@@ -1,11 +1,12 @@
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 
+from argparse import Namespace
 from fake_useragent import UserAgent
 import modules.config as g
 
-def initialise_driver(args):
-
+def initialise_driver(args: Namespace) -> WebDriver:
     chrome_options = Options()
     ua = UserAgent()
     chrome_options.add_argument("user-agent=" + ua.random)

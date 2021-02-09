@@ -52,7 +52,7 @@ class Node:
         # Whether this node has been downloaded
 
         self.parent: Optional[Node] = None
-        self.children = []
+        self.children: List[Node]  = []
 
     def __str__(self):
         return f'Node "{self.name}" {len(self.children)} children'
@@ -133,11 +133,12 @@ class FileTree:
 
         self.attach_pointer(node)
 
-    def attach_pointer(self, node : Optional[Node]):
+    def attach_pointer(self, node : Optional[Node]) -> None:
         if node:
             self.pointer = node
+            return None
         else:
-            return
+            return None
 
     def get_subtree(self, node: Node):
         return FileTree(self.get_children(node))

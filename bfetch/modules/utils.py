@@ -1,20 +1,20 @@
 from typing import Type
 from bs4 import BeautifulSoup
+from selenium.webdriver.chrome.webdriver import WebDriver
+# from modules.filetree import Node, File, FileTree
 
 
-def get_request(browser, url):
+def get_request(browser: WebDriver, url: str) -> BeautifulSoup:
     """
     Goes to to the designated url and
     returns a beautiful soup object.
     """
     # print(f"get_request: {url}")
-    import sys
-    sys.stdout.flush()
     browser.get(url)
     soup = make_soup(browser)
     return soup
 
-def make_soup(browser):
+def make_soup(browser: WebDriver):
     """Returns a beautiful soup object of the current url."""
     html = browser.page_source
     soup = BeautifulSoup(html, 'html.parser')

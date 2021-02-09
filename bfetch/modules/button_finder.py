@@ -58,7 +58,11 @@ def find_child_hrefs(button: WebElement) -> List[str]:
     return hrefs
 
 
-def find_button(browser: WebDriver, id_string: str ="", partial_link: str ="", name: str="", xpath: str =""):
+def find_button(browser: WebDriver,
+        id_string: str ="",
+        partial_link: str ="",
+        name: str="",
+        xpath: str ="") -> List[WebElement]:
     """browser -> [str] -> button
 
     Finds button by specifying one of the following:
@@ -91,7 +95,11 @@ def find_button(browser: WebDriver, id_string: str ="", partial_link: str ="", n
 
 
 def find_and_click_button(
-        browser: WebDriver, id_string: str ="", partial_link: str ="", name: str ="", xpath: str = ""
+        browser: WebDriver,
+        id_string: str ="",
+        partial_link: str ="",
+        name: str ="",
+        xpath: str = ""
 ) -> None:
     """
     Finds a button element and clicks it.

@@ -1,8 +1,9 @@
 import logging
 import re
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any
 from selenium.webdriver.chrome.webdriver import WebDriver
 from bs4.element import Tag
+from bs4 import BeautifulSoup
 
 from modules.utils import make_soup
 
@@ -21,6 +22,7 @@ def get_content_tags(browser: WebDriver) -> List[Tag]:
     content_tags = soup.find("div", {"class": "navPaletteContent"}).find_all(
         "a"
     )
+    assert content_tags != []
     return content_tags
 
 
@@ -69,7 +71,7 @@ def get_module_tags(browser: WebDriver) -> List[Tag]:
 
 def match_regex_list(
     regex: str, things_to_match: List[str]
-) -> Optional[List[str]]:
+) -> List[re.Match[str]]:
     """
     Checks if strings in things_to_match matches the
     regular expression, if not fileter them out.
@@ -83,9 +85,45 @@ def match_regex_list(
     return matched
 
 
+def link_aggregator(soup: BeautifulSoup) -> List[Tag]:
+    """
+    Finds links at the section level.
+    """
+    regex1 = re.compile("^contentListItem:.*")
+
+    links: List[List[Tag]]
+    links = [
+    # Find folders
+    [t.find("a") 
+     for t in soup.find_all("li", {"id": regex1})],
+    # Not sure
+    [t.find("a") 
+     for t in soup.find_all("ul", {"class": "attachments clearfix"})],
+    # General finder, designed to match this kind of link.
+    # https://tcd.blackboard.com/bbcswebdav/pid-1271258-dt-content-rid-7326038_1/xid-7326038_1
+    [t.find("a")
+     for t in soup.find_all() 
+     if "pid" in t.get("href") and "xid" in t.get("href")
+     ],
+            ]
+
+    # flatten links
+    tags = [t for tags in links for t in tags]
+
+    filtered_tags = [tag for tag in tags if filter_function(tag) == True]
+    return filtered_tags
+
+def filter_function(tag: Tag) -> bool:
+    functions = [
+            lambda t: type(t) is Tag, 
+            lambda t: t.get("href") is not None
+            ]
+    application = [f(tag) for f in functions]
+    return all(application)
+     
 
 
-def find_pdf_links(browser: WebDriver) -> Tuple[List[Tag], List[Tag]]:
+def find_links(browser: WebDriver) -> Tuple[List[Tag], List[Tag]]:
     """
     Find the appropriate link tags according to certain features of
     the links themselves, and recognize folders. Make a list of
@@ -95,41 +133,22 @@ def find_pdf_links(browser: WebDriver) -> Tuple[List[Tag], List[Tag]]:
 
     soup = make_soup(browser)
 
+
+    found_tags = link_aggregator(soup)
+
     # Anyway to generalise this code, so that is it easy to
     # search for many types of links?
     # Search div with attached files.
-    regex_for_pdf_links_1 = re.compile("^contentListItem:.*")
-    pdf_link_tags_1 = [
-        x.find("a") for x in soup.find_all("li", {"id": regex_for_pdf_links_1})
-    ]
-    pdf_link_tags_2 = [
-        x.find("a")
-        for x in soup.find_all("ul", {"class": "attachments clearfix"})
-    ]
-    pdf_link_tags_3 = [
-        x.find("a")
-        for x in soup.find_all() if "pid" in x.href and "xid" in x.href
-    ]
-
-    # List of all possibly interesting items.
-    pdf_link_tags = pdf_link_tags_1 + pdf_link_tags_2
-    # Filter out None.
-    pdf_link_tags = [tag for tag in pdf_link_tags if tag is not None]
-    try:
-        logging.info([pdf.text for pdf in pdf_link_tags])
-    except AttributeError:
-        pass
 
     # Remove any non tag from list.
-    pdf_link_tags = [tag for tag in pdf_link_tags if type(tag) is Tag]
 
     # Recognize folder based on href
     folders = [
-        tag for tag in pdf_link_tags if "listContent" in str(tag["href"])
+        tag for tag in found_tags if "listContent" in str(tag["href"])
     ]
 
     # remove folder from links
-    pdf_link_tags = list(set(pdf_link_tags) - set(folders))
+    pdf_link_tags = list(set(found_tags) - set(folders))
 
     # TODO remove hrefs that have 'turnitin' in them.
 
