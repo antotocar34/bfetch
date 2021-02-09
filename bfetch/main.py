@@ -4,7 +4,8 @@ import time
 import re
 import csv
 import logging
-from typing import List
+import argparse as arg
+from typing import List, Tuple
 
 from pathlib import Path
 
@@ -22,7 +23,6 @@ from modules.filehandler import sort_to_folder_from_tree
 from modules.browser_init import initialise_driver
 from modules.button_finder import find_and_click_button
 from modules.interactions import log_in
-from modules.arguments import parse_args
 from modules.utils import get_request, make_soup, normalize_name, make_wfu
 
 from modules.html_parser import (
@@ -33,6 +33,43 @@ from modules.html_parser import (
 
 from modules.filetree import FileTree, Node, File
 
+def arguments() -> Tuple[bool, float]:
+    parser = arg.ArgumentParser(description="Download files from blackboard")
+    fast = 1.5
+    slow = 0.1
+    default = 0.8
+    parser.add_argument("-s", "--show", default=False, action="store_true",
+                        help="Whether to show the browser.")
+    parser.add_argument(
+        "-S", "--slow", action="store_const", default=None, const=slow,
+        help="Dowloads files at a slower sleep"
+    )
+    parser.add_argument(
+        "-F", "--fast", action="store_const", default=None, const=fast,
+        help="Downloads the files as fast as possible."
+    )
+    args = parser.parse_args()
+
+    if args.slow:
+        speed = args.slow
+    elif args.fast:
+        speed = args.fast
+    else:
+        speed = default
+    
+    return args.show, speed
+
+def parse_args() -> arg.Namespace:
+    """Parses Argument given"""
+    parser = arg.ArgumentParser(description="Download files from blackboard")
+    fast = 1.5
+    slow = 0.1
+    default = 0.8
+    parser.add_argument("-s", "--show", action="store_true")
+    parser.add_argument("-S", action="store_const", default=default, const=fast)
+    parser.add_argument("-F", action="store_const", default=default, const=slow)
+    args = parser.parse_args()
+    return args
 
 def init_tree() -> FileTree:
     """
@@ -43,20 +80,6 @@ def init_tree() -> FileTree:
     tree.insert(root)
     return tree
 
-
-# TODO move this
-TREE = init_tree()
-
-# TODO implement speed
-# DEFAULT SPEED
-SPEED = g.SPEED
-
-args = parse_args()
-
-if args.S:
-    SPEED = args.S
-if args.F:
-    SPEED = args.F
 
 
 # Initialise the log file
@@ -113,31 +136,15 @@ def files_folders(browser: WebDriver):
     for tag in pdf_link_tags:
 
         file_node = tag_to_node(tag, "file")
+        # This is where the new pointer is attached.
+        # download_file(browser, file_node)
 
-        # This should be done at an earlier stage.
-        banned_strings = [
-            "turnitin",
-            "launchAssessment",
-            "mailto",
-            "docs.google.com",
-            "youtube",
-            "tcdlibrary",
-            "#",
-        ]
+        TREE.insert(file_node, TREE.pointer)
+        print(f"{file_node.file.name} inserted.")
 
-        check_banned = all(
-            [s not in file_node.file.url for s in banned_strings]
-        )
-
-        if check_banned:
-            # This is where the new pointer is attached.
-            # download_file(browser, file_node)
-            TREE.insert(file_node, TREE.pointer)
-            print(f"{file_node.file.name} inserted.")
-
-            # Mark the file as have been downloaded
-            # Attach back to section node.
-            TREE.attach_pointer(file_node.parent)
+        # Mark the file as have been downloaded
+        # Attach back to section node.
+        TREE.attach_pointer(file_node.parent)
 
     for tag in folders:
 
@@ -149,6 +156,7 @@ def files_folders(browser: WebDriver):
 
         folder_node.file.completed = True
 
+        print(folder_node.name + " inserted")
         TREE.attach_pointer(folder_node.parent)
 
 
@@ -204,10 +212,18 @@ def download_file_nodes(browser: WebDriver , tree: FileTree) -> None:
         download_file(browser, n)
     return None
 
+# GLOBAL VARIABLE
+# TODO move this
+TREE = init_tree()
 
 def main():
 
-    browser = initialise_driver(args)
+    show, speed = arguments()
+    print(show, speed)
+
+    SPEED = speed
+
+    browser = initialise_driver(show)
 
     log_in(browser)
 
@@ -222,6 +238,8 @@ def main():
 
     make_tree(browser, module_tags)
 
+    download_file_nodes(browser, TREE) 
+
     browser.quit()
 
 
@@ -234,11 +252,9 @@ if __name__ == "__main__":
         main()
     finally:
         TREE.write_to_file()
-        # sort_to_folder_from_tree(TREE)
+        sort_to_folder_from_tree(TREE)
 
         downloaded = [n for n in TREE.nodes if n.file.kind == 'file' and n.file.completed == True]
         print(
             f"\n\nTotal downloaded: {len(downloaded)}"
         )
-
-# TODO decorator to handle node repointering?

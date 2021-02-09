@@ -1,5 +1,5 @@
 from typing import Optional
-from modules.general_tree import File, FileTree, Node
+from modules.filetree import File, FileTree, Node
 
 import os
 from pathlib import Path
@@ -11,13 +11,14 @@ import modules.config as g
 def file_node_to_path(tree: FileTree, node: Node) -> str:
     """
     returns the path from module node to file.
+
     """
     assert node.file.kind == "file"
     assert node.file.file_name is not None
 
     nodes = []
 
-    def find_module_node(node: Node) -> Optional[Node]:
+    def find_module_node(node: Optional[Node]) -> Optional[Node]:
         if node.file.kind == "module":
             module_node = node
             nodes.append(module_node)

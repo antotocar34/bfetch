@@ -14,6 +14,15 @@ from modules.utils import make_soup
 #     content_tags = soup.find("div", {"class": "navPaletteContent"}).find_all(
 # AttributeError: 'NoneType' object has no attribute 'find_all'
 #
+def filter_content_tags(content_tags: List[Tag],
+                        browser: WebDriver
+                        ) -> List[Tag]:
+    content_tags = [t for t in content_tags if t is not None]
+    content_tags = [t 
+                    for t in content_tags 
+                    if t.text != "Announcements" and t.href != browser.current_url]
+    return content_tags
+
 def get_content_tags(browser: WebDriver) -> List[Tag]:
     """
     TODO WRITE MULTIPLE WAYS OF DOING IT
@@ -23,6 +32,9 @@ def get_content_tags(browser: WebDriver) -> List[Tag]:
         "a"
     )
     assert content_tags != []
+
+    content_tags = filter_content_tags(content_tags, browser)
+
     return content_tags
 
 
@@ -42,85 +54,74 @@ def get_module_tags(browser: WebDriver) -> List[Tag]:
     return module_tags
 
 
-# def return_filtered_tags(tags: List[Tag]) -> List[Tag]:
-#     """
-#     Filters out tags according to filter_out_noise function.
-#     """
-#     regex_for_module_names = '^[A-Z]{2,3}[0-9A-Z]{3,5}.*'
-#      # In case I did something wrong.
-#     old_regex_for_module_names = '^[A-Z]{3}[0-9]{5}-[A-Z]-[A-Z0-9]*.*$'
-
-#     for tag in tags.copy():
-#         if filter_out_noise(tag, regex) is True:
-#             tags.remove(tag)
-#     return tags
-
-# def filter_out_noise(tag, regex):
-#     """
-#     Filter out None, Announcements and whatever matches regex.
-#     """
-#     if tag.string is None:
-#         return True
-#     elif tag.string == "Announcements":
-#         logging.info("Skipped Announcements")
-#         return True
-#     elif re.search(re.compile(regex), tag.string) is not None:
-#         return True
-#     else:
-#         return False
-
-def match_regex_list(
-    regex: str, things_to_match: List[str]
-) -> List[re.Match[str]]:
+def filter_function(tag: Tag) -> bool:
     """
-    Checks if strings in things_to_match matches the
-    regular expression, if not fileter them out.
+    Tests that tags are valid.
     """
-    pattern = re.compile(regex)
-    matched = []
-    for thing in things_to_match:
-        match = pattern.match(str(thing))
-        if match is not None:
-            matched.append(match)
-    return matched
+    functions = [
+            lambda t: type(t) is Tag, 
+            lambda t: bool(t.get("href"))
+            ]
+    application: List[bool] = [f(tag) for f in functions]
+    return all(application)
+     
 
+def general_file_link_getter(soup: BeautifulSoup) -> List[Tag]:
+    """
+    # General finder, designed to match this kind of link.
+    /bbcswebdav/pid-1271258-dt-content-rid-7326038_1/xid-7326038_1
 
-def link_aggregator(soup: BeautifulSoup) -> List[Tag]:
+    # Will also get request links that end in a common document formar
+    """
+    all_tags: List[Tag] = [t for t in soup.find_all("a") if t is not None]
+
+    tags = [t for t in all_tags if t.get("href") is not None]
+
+    regex = re.compile(r"(pid-\d+|xid-\d+)|(\.(pdf|\.pptx|\.docx|\.odt)$)")
+
+    general_link_tags = [t for t in tags 
+                         if bool(re.search(regex, str(t["href"])))
+                        ]
+    return general_link_tags
+
+def folder_link_getter(soup: BeautifulSoup) -> List[Tag]:
+    """
+    # General finder, designed to match this kind of link.
+    /bbcswebdav/pid-1271258-dt-content-rid-7326038_1/xid-7326038_1
+
+    # Will also get request links that end in a common document formar
+    """
+    # TODO find a more robust way of parsing folders.
+    regex_for_folders = re.compile(r"^contentListItem:.*") 
+    all_tags: List[Tag] = [t.find("a") 
+                           for t 
+                           in soup.find_all("li", {"id": regex_for_folders})]
+
+    no_none_tags = [t for t in all_tags if t is not None]
+    tags = [t for t in no_none_tags if t.get("href") is not None
+                                    and not t.get("href").endswith("#")]
+
+    # this is not going to do.
+    regex = re.compile(r"listContent")
+    folder_tags = [t for t in tags 
+                         if bool(re.search(regex, str(t["href"])))
+                        ]
+    return folder_tags
+
+def link_aggregator(soup: BeautifulSoup) -> Tuple[List[Tag], List[Tag]]:
     """
     Finds links at the section level.
     """
-    regex1 = re.compile("^contentListItem:.*")
 
-    links: List[List[Tag]]
-    links = [
-    # Find folders
-    [t.find("a") 
-     for t in soup.find_all("li", {"id": regex1})],
-    # Not sure
-    [t.find("a") 
-     for t in soup.find_all("ul", {"class": "attachments clearfix"})],
-    # General finder, designed to match this kind of link.
-    # https://tcd.blackboard.com/bbcswebdav/pid-1271258-dt-content-rid-7326038_1/xid-7326038_1
-    [t.find("a")
-     for t in soup.find_all() 
-     if "pid" in t.get("href") and "xid" in t.get("href")
-     ],
-            ]
+    folder_links = folder_link_getter(soup)
+    folder_links = [t for t in folder_links if filter_function(t)]
 
-    # flatten links
-    tags = [t for tags in links for t in tags]
+    general_links = general_file_link_getter(soup)
+    general_links = [t for t in general_links if filter_function(t)]
 
-    filtered_tags = [tag for tag in tags if filter_function(tag) == True]
-    return filtered_tags
+    return general_links, folder_links
 
-def filter_function(tag: Tag) -> bool:
-    functions = [
-            lambda t: type(t) is Tag, 
-            lambda t: t.get("href") is not None
-            ]
-    application = [f(tag) for f in functions]
-    return all(application)
-     
+
 
 
 def find_links(browser: WebDriver) -> Tuple[List[Tag], List[Tag]]:
@@ -129,27 +130,10 @@ def find_links(browser: WebDriver) -> Tuple[List[Tag], List[Tag]]:
     the links themselves, and recognize folders. Make a list of
     those anchor tags, while taking out the folder links.
     """
-    # This function contains the logic to find pdf links.
 
     soup = make_soup(browser)
 
 
-    found_tags = link_aggregator(soup)
+    pdf_link_tags, folder_tags = link_aggregator(soup)
 
-    # Anyway to generalise this code, so that is it easy to
-    # search for many types of links?
-    # Search div with attached files.
-
-    # Remove any non tag from list.
-
-    # Recognize folder based on href
-    folders = [
-        tag for tag in found_tags if "listContent" in str(tag["href"])
-    ]
-
-    # remove folder from links
-    pdf_link_tags = list(set(found_tags) - set(folders))
-
-    # TODO remove hrefs that have 'turnitin' in them.
-
-    return pdf_link_tags, folders
+    return pdf_link_tags, folder_tags

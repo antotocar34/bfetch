@@ -6,12 +6,12 @@ from argparse import Namespace
 from fake_useragent import UserAgent
 import modules.config as g
 
-def initialise_driver(args: Namespace) -> WebDriver:
+def initialise_driver(show: bool) -> WebDriver:
     chrome_options = Options()
     ua = UserAgent()
     chrome_options.add_argument("user-agent=" + ua.random)
     chrome_options.add_argument('disable-infobars')
-    if args.show == True:
+    if not show:
         chrome_options.add_argument("--headless")
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--no-sandbox')
@@ -21,8 +21,8 @@ def initialise_driver(args: Namespace) -> WebDriver:
         {
             "download.default_directory": g.DOWNLOAD_PATH,
             "download.prompt_for_download": False,
-            # "download.directory_upgrade": True,
             "plugins.always_open_pdf_externally": True,
+            # "download.directory_upgrade": True,
         },
     )
     try:

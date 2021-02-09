@@ -39,7 +39,7 @@ class File:
         return data
 
     def __eq__(self, other):
-        return self.data == other.data and self.kind == other.kind
+        return self.data == other.data
 
     def __str__(self):
         return f"{self.data}" + f"\n{self.kind}"
@@ -109,12 +109,19 @@ class FileTree:
         self.nodes = nodes
         self.pointer = None
 
+    @property
+    def root(self):
+        return self.nodes[0]
+
     def add(self, node: Node, parent_node: Optional[Node]) -> None:
+        """
+        Adds the node to self.nodes. Set's the new node's parent.
+        """
 
         if parent_node:
-            a = f"\nchild:{node.file.kind}, parent:{parent_node.file.kind}"
-            b = f"\nchild_type {node.node_type}, parent: {parent_node.node_type}"
-            c = f"\nchild_type {node.name}, parent: {parent_node.name}"
+            a = f"\nchild_kind:{node.file.kind}, parent_kind:{parent_node.file.kind}"
+            b = f"\nchild_type {node.node_type}, parent_type: {parent_node.node_type}"
+            c = f"\nchild_name {node.name}, parent_name: {parent_node.name}"
             assert check_validity_of_order(node, parent_node), a + b + c
 
             
@@ -158,6 +165,7 @@ class FileTree:
         else:
             raise KeyError
 
+
     def __getitem__(self, name: str):
         return self.nodes[self.get_index(name)]
 
@@ -168,9 +176,6 @@ class FileTree:
     def __eq__(self, other) -> bool:
         return self.nodes == other.nodes
 
-    @property
-    def root(self):
-        return self.nodes[0]
 
     def __str__(self):
         string = []
@@ -210,7 +215,8 @@ class FileTree:
 
     def dictionary(self) -> dict:
         """
-        tree -> dict
+        Converts tree to dictionary.
+        For non-file nodes, puts 
         """
 
         def recurse(self, dic: dict, sub_dic: dict, top_node: Node):
@@ -219,7 +225,7 @@ class FileTree:
             if top_node.node_type == "leaf":
                 return top_node.file.data
 
-            if sub_dic == {} and dic == {}:  # For first call.
+            if sub_dic == {} and dic == {}: # For first call.
                 dic[top_node.name] = {}
                 new_sub_dic = dic[top_node.name]
 
@@ -250,25 +256,38 @@ class FileTree:
 
 
 # TODO finish this
-def dic_to_tree(dic: dict):
+def dic_to_tree(dic: dict) -> FileTree:
+
     def recurse(sub_dic: dict, parent_node: Node):
         for d in sub_dic:
+            print(d)
             if f"{d}.self" in sub_dic:  # If this is a section.
                 data = sub_dic[d][f"{d}.self"]
-                node = Node(File(d, data["url"], data["kind"]))
+                name = data["name"]
+                url = data["url"]
+                kind = data["kind"]
+                file_name = data["file_name"]
+                completed = data["completed"]
+                node = Node(File(name, url, kind, file_name, completed))
                 tree.insert(node, parent_node)
-                recurse(sub_dic[d], node)
+                recurse(sub_dic.pop(f"{d}.self", None), node)
             else:
                 data = sub_dic[d]
-                node = Node(File(d, data["url"], data["kind"]))
+                name = data["name"]
+                url = data["url"]
+                kind = data["kind"]
+                file_name = data["file_name"]
+                completed = data["completed"]
+                node = Node(File(name, url, kind, file_name, completed))
                 tree.insert(node, parent_node)
 
-    # Losing information about the url. Does it matter?
     tree = FileTree([Node(File("root", "", "root"))])
-    for module in dic:
-        module_node = Node(File(module, "", "module"))
-        tree.insert(module_node, tree.root)
-        recurse(dic[module], module_node)
+    recurse(dic, tree.root)
+    # for module in dic:
+    #     module_node = Node(File(module, "", "module"))
+    #     tree.insert(module_node, tree.root)
+    #     recurse(dic[module], module_node)
+    return tree
 
 
 if __name__ == "__main__":

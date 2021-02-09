@@ -1,7 +1,6 @@
 from typing import Type
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.webdriver import WebDriver
-# from modules.filetree import Node, File, FileTree
 
 
 def get_request(browser: WebDriver, url: str) -> BeautifulSoup:
