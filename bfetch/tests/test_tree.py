@@ -1,6 +1,6 @@
 import unittest
 
-from modules.filetree import Node, File, FileTree
+from modules.filetree import Node, File, FileTree, dic_to_tree
 
 
 class TestTree(unittest.TestCase):
@@ -81,7 +81,12 @@ class TestTree(unittest.TestCase):
                 }
 
         def test_dic_to_tree(self):
-            pass
+            test_tree = dic_to_tree(self.test_dic)
+            print(type(test_tree))
+            print(test_tree)
+            self.assertEqual(test_tree.__str__(),
+                             self.good_tree.__str__())
+                             
 
 
         def test_tree_to_dic(self):
