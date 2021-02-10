@@ -10,11 +10,9 @@ selenium = "^3.141.0"
 randomua = "^0.0.7"
 bs4 = "^0.0.1"
 ipython = "^7.20.0"
+pytest = "^6.2.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "^5.2"
-pylint = "^2.6.0"
-pylama = "^7.7.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
