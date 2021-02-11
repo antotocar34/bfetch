@@ -1,9 +1,28 @@
+import json
 import unittest
+from pprint import pprint
 
+import modules.config as g
 from modules.filetree import Node, File, FileTree, dic_to_tree
 
 
+def get_complicated_dictionary() -> dict:
+    file_path = f"{g.CODE_DIR}/tests/files/complicated_dictionary.json"
+    with open(file_path, 'r') as f:
+        dic = json.load(f)
+        return dic
+        
+
+
 class TestTree(unittest.TestCase):
+    def test_index_method(self):
+        """
+        Tests that tree[name_of_node] works.
+        """
+        tree= self.test_tree
+        self.assertEqual(self.file1a, tree[self.file1a.name])
+
+
     root = Node(File("root", "", "root"))
     mod1 = Node(File("module1", "", "module"))
     sec1 = Node(File("section1", "", "section"))
@@ -40,23 +59,78 @@ class TestTree(unittest.TestCase):
 
     good_tree = FileTree([t_root, t_mod1, t_sec1, t_file1a, t_file1b])
 
-    def test_insert_large(self):
-        """
-        Tests that basic tree construction works.
-        """
+    good_dict = {
+            "module1" : {
+                "module1.self" : {
+                    "name" : "module1",
+                    "url"  : "",
+                    "kind" : "module",
+                    "file_name" : None,
+                    "completed" : False
+                    },
+                "section1": {
+                    "section1.self" : {
+                        "name" : "section1",
+                        "url"  : "",
+                        "kind" : "section",
+                        "file_name" : None,
+                        "completed" : False
+                        },
+                    "file1a" : {
+                        "name" : "file1a",
+                        "url"  : "",
+                        "kind" : "file",
+                        "file_name" : None,
+                        "completed" : False
+                        },
+                    "file1b" : {
+                        "name" : "file1b",
+                        "url"  : "",
+                        "kind" : "file",
+                        "file_name" : None,
+                        "completed" : False
+                        }
+                    }
+                }
+            }
+
+    # def test_insert_large(self):
+    #     """
+    #     Tests that basic tree construction works.
+    #     """
+    #     # __str__ instance will contain all that is needed for
+    #     # the tree to work.
+    #     self.assertEqual(
+    #             self.test_tree.__str__(), self.good_tree.__str__()
+    #     )
+
+    def test_tree_to_dic(self):
+        tree = self.test_tree
+        test_dic = tree.dictionary()
+        good_dict = self.good_dict.copy()
+
+        print("EXPECTED: ")
+        pprint(good_dict)
+        print("OUTPUT: ")
+        pprint(test_dic)
+        self.assertEqual(test_dic, good_dict)
 
 
-        # __str__ instance will contain all that is needed for
-        # the tree to work.
-        self.assertEqual(
-                self.test_tree.__str__(), self.good_tree.__str__()
-        )
 
-        test_dic = {
-                "mod1" : {
-                    "sec1": {
-                        "sec1.self" : {
-                            "name" : "sec1",
+    def test_dic_to_tree_simple(self):
+        # pprint(self.test_dic)
+        good_dict = {
+                "module1" : {
+                    "module1.self" : {
+                        "name" : "module1",
+                        "url"  : "",
+                        "kind" : "module",
+                        "file_name" : None,
+                        "completed" : False
+                        },
+                    "section1": {
+                        "section1.self" : {
+                            "name" : "section1",
                             "url"  : "",
                             "kind" : "section",
                             "file_name" : None,
@@ -80,22 +154,96 @@ class TestTree(unittest.TestCase):
                     }
                 }
 
-        def test_dic_to_tree(self):
-            test_tree = dic_to_tree(self.test_dic)
-            print(type(test_tree))
-            print(test_tree)
-            self.assertEqual(test_tree.__str__(),
-                             self.good_tree.__str__())
-                             
+        test_tree = dic_to_tree(good_dict)
+        self.assertEqual(test_tree.__str__(),
+                         self.good_tree.__str__())
 
 
-        def test_tree_to_dic(self):
-            tree = self.test_tree
-            dic = self.test_dic
-            self.assertEqual(tree.dictionary(), dic)
+    def test_lossless_tree_dict_tree(self):
+        """
+        If A: tree -> B: dict -> C: tree
+      
+        Checks that A == C.
+        """
+
+        A = self.good_tree
+
+        B = A.dictionary()
+
+        C = dic_to_tree(B)
+
+        self.assertEqual(A,C)
 
 
 
+    def test_lossless_dict_tree_dict(self):
+        """
+        If A: dict -> B: tree -> C: dict
+      
+        Checks that A == C.
+        """
+        good_dict = {
+                "module1" : {
+                    "module1.self" : {
+                        "name" : "module1",
+                        "url"  : "",
+                        "kind" : "module",
+                        "file_name" : None,
+                        "completed" : False
+                        },
+                    "section1": {
+                        "section1.self" : {
+                            "name" : "section1",
+                            "url"  : "",
+                            "kind" : "section",
+                            "file_name" : None,
+                            "completed" : False
+                            },
+                        "file1a" : {
+                            "name" : "file1a",
+                            "url"  : "",
+                            "kind" : "file",
+                            "file_name" : None,
+                            "completed" : False
+                            },
+                        "file1b" : {
+                            "name" : "file1b",
+                            "url"  : "",
+                            "kind" : "file",
+                            "file_name" : None,
+                            "completed" : False
+                            }
+                        }
+                    }
+                }
+        p = good_dict.copy() 
+        # pprint(p)
+
+      
+        tree_from_dict = dic_to_tree(good_dict)
+        # print([n.file.data for n in tree_from_dict.nodes])
+        transformed = tree_from_dict.dictionary()
+        # pprint(transformed)
+        self.assertEqual(transformed, good_dict)
+
+
+    def test_dic_to_tree_complex(self):
+        """
+        Tests a real dictionary.
+        """
+        good_dict = get_complicated_dictionary()
+        tree = dic_to_tree(good_dict)
+        # print(tree)
+        recycled_dict = tree.dictionary()
+        # pprint(good_dict)
+        # pprint(recycled_dict)
+        self.assertEqual(good_dict, recycled_dict)
+
+    def test_string_dunder_method(self):
+        complicated_dictionary = get_complicated_dictionary()
+        tree = dic_to_tree(complicated_dictionary)
+        string = tree.__str__()
+        self.assertIs(type(string), str)
 
 if __name__ == "__main__":
     unittest.main()

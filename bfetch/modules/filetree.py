@@ -1,8 +1,10 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict, Tuple
 import uuid
 import json
+from pprint import pprint
 
 import modules.config as g
+
 # import config as g
 
 
@@ -49,10 +51,13 @@ class Node:
     def __init__(self, file_object: File):
         self.file = file_object
         self.name = file_object.name
+        self.id = self.name + (
+            str(tuple(d for d in self.file.data.values()).__hash__())
+        )
         # Whether this node has been downloaded
 
         self.parent: Optional[Node] = None
-        self.children: List[Node]  = []
+        self.children: List[Node] = []
 
     def __str__(self):
         return f'Node "{self.name}" {len(self.children)} children'
@@ -60,9 +65,12 @@ class Node:
     def __eq__(self, other):
         return self.file == other.file
 
-    @property
-    def identifier(self) -> str:
-        return self.name
+    # @property
+    # def id(self):
+    #     if hasattr(self, "identifier"):
+    #         return self.identifier
+    #     else:
+    #         return self.name + str(uuid.uuid1())
 
     @property
     def node_type(self) -> str:
@@ -124,7 +132,6 @@ class FileTree:
             c = f"\nchild_name {node.name}, parent_name: {parent_node.name}"
             assert check_validity_of_order(node, parent_node), a + b + c
 
-            
             if self.nodes != []:
                 node.parent = parent_node
                 parent_node.children.append(node)
@@ -140,22 +147,12 @@ class FileTree:
 
         self.attach_pointer(node)
 
-    def attach_pointer(self, node : Optional[Node]) -> None:
+    def attach_pointer(self, node: Optional[Node]) -> None:
         if node:
             self.pointer = node
             return None
         else:
             return None
-
-    def get_subtree(self, node: Node):
-        return FileTree(self.get_children(node))
-
-    def get_children(self, node: Node) -> List[Node]:
-        assert node in self.nodes, "Node not in tree."
-        S = [node]
-        for child in node.children:
-            S = S + self.get_children(child)
-        return S
 
     def get_index(self, identifier: str) -> int:
         """ Searches by identifier, which is usually just the name"""
@@ -164,7 +161,6 @@ class FileTree:
                 return index
         else:
             raise KeyError
-
 
     def __getitem__(self, name: str):
         return self.nodes[self.get_index(name)]
@@ -176,30 +172,73 @@ class FileTree:
     def __eq__(self, other) -> bool:
         return self.nodes == other.nodes
 
+    def __str__(self) -> str:
+        def depth_traversal(source_node) -> List[str]:
+            strings: List[str] = []
+            stack: List[Tuple[Node, int]] = []
+            visited: Dict[str, bool] = {n.id: False for n in self.nodes}
 
-    def __str__(self):
-        string = []
+            stack.append((source_node, 0))
 
-        def tree_to_string(tree, name="root", level=0) -> None:
-            queue = self[name].children
-            if level == 0:
-                str_name = self[name].name
-                nonlocal string
-                string.append(str_name)
-                # print(f"{self[name].name}")
-            else:
-                str1 = "\t" * level
-                str2 = f"{self[name].name}"
-                str_name = f"{str1} {str2}"
-                string.append(str_name)
-                # print("\t" * level, f"{self[name].name}")
-            level += 1
-            for element in queue:
-                tree_to_string(tree, element.name, level)  # recursive call
+            while stack:
+                n, level = stack.pop()
 
-        tree_to_string(self)
-        return "\n".join(string)
+                if not visited[n.id]:
+                    string = ("\t" * level) + f"{n.name}"
+                    strings.append(string)
+                    visited[n.id] = True
 
+                # children = n.parent.children if n.node_type != "root" else []
+
+                if (
+                    all([not visited[c.id] for c in n.children])
+                    and n.children != []
+                ):
+                    level += 1
+
+                for child in reversed(n.children):
+                    if not visited[child.id]:
+                        stack.append((child, level))
+
+            return strings
+
+        strings = depth_traversal(self.root)
+
+        return "\n".join(strings)
+
+    def print_subtree(self, node):
+        def depth_traversal(source_node) -> List[str]:
+            strings: List[str] = []
+            stack: List[Tuple[Node, int]] = []
+            visited: Dict[str, bool] = {n.id: False for n in self.nodes}
+
+            stack.append((source_node, 0))
+
+            while stack:
+                n, level = stack.pop()
+
+                if not visited[n.id]:
+                    string = ("\t" * level) + f"{n.name}"
+                    strings.append(string)
+                    visited[n.id] = True
+
+                # children = n.parent.children if n.node_type != "root" else []
+
+                if (
+                    all([not visited[c.id] for c in n.children])
+                    and n.children != []
+                ):
+                    level += 1
+
+                for child in reversed(n.children):
+                    if not visited[child.id]:
+                        stack.append((child, level))
+
+            return strings
+
+        strings = depth_traversal(node)
+
+        print("\n".join(strings))
 
     def get_module(self, node) -> Node:
         """
@@ -213,22 +252,31 @@ class FileTree:
         else:
             return node
 
-    def dictionary(self) -> dict:
+    def dictionary(self) -> Dict[str, dict]:
         """
         Converts tree to dictionary.
-        For non-file nodes, puts 
+        For non-file nodes, puts {node.file.name}.self
+        entry one level below.
         """
 
-        def recurse(self, dic: dict, sub_dic: dict, top_node: Node):
+        def recurse(self, dic: dict, sub_dic: dict, top_node: Node) -> dict:
+            """
+            dic is the dictionary that accumulates through
+            the recursion.
+            sub_dic is the dictionary inside
+            """
 
             # BASE CASE
             if top_node.node_type == "leaf":
                 return top_node.file.data
 
-            if sub_dic == {} and dic == {}: # For first call.
+            if sub_dic == {} and dic == {}:  # For first call.
                 dic[top_node.name] = {}
                 new_sub_dic = dic[top_node.name]
 
+            if top_node.node_type == "root":
+                sub_dic[top_node.name] = {}
+                new_sub_dic = sub_dic[top_node.name]
             else:
                 # Initialize new node dictionary, and reassign sub_dic
                 sub_dic[top_node.name] = {}
@@ -256,21 +304,37 @@ class FileTree:
 
 
 # TODO finish this
-def dic_to_tree(dic: dict) -> FileTree:
+def dic_to_tree(dic: Dict[str, dict]) -> FileTree:
+    """
+    Takes a dictionary and converts it to a tree.
+    """
 
-    def recurse(sub_dic: dict, parent_node: Node):
+    def recurse(sub_dic: Dict[str, dict], parent_node: Node) -> None:
         for d in sub_dic:
-            print(d)
-            if f"{d}.self" in sub_dic:  # If this is a section.
+
+            if f"{d}.self" in sub_dic[d]:  # If this is a section.
                 data = sub_dic[d][f"{d}.self"]
                 name = data["name"]
                 url = data["url"]
                 kind = data["kind"]
                 file_name = data["file_name"]
+                assert type(file_name) is str or file_name is None
                 completed = data["completed"]
-                node = Node(File(name, url, kind, file_name, completed))
+                assert type(completed) is bool
+                node = Node(File(name, url, kind, completed, file_name))
                 tree.insert(node, parent_node)
-                recurse(sub_dic.pop(f"{d}.self", None), node)
+
+                # Iterate through the rest of the tree,
+                # Basically this is removing the section
+                # header.
+                rest_of_sub_dic = {
+                    i: sub_dic[d][i] for i in sub_dic[d] if i != f"{d}.self"
+                }
+                # sub_dic[d].pop(f"{d}.self", None)
+                if rest_of_sub_dic:
+                    recurse(rest_of_sub_dic, node)
+                else:
+                    continue
             else:
                 data = sub_dic[d]
                 name = data["name"]
@@ -278,7 +342,7 @@ def dic_to_tree(dic: dict) -> FileTree:
                 kind = data["kind"]
                 file_name = data["file_name"]
                 completed = data["completed"]
-                node = Node(File(name, url, kind, file_name, completed))
+                node = Node(File(name, url, kind, completed, file_name))
                 tree.insert(node, parent_node)
 
     tree = FileTree([Node(File("root", "", "root"))])
@@ -342,3 +406,12 @@ if __name__ == "__main__":
             },
         }
     }
+    treep = dic_to_tree(test_dic)
+    with open(
+        "/home/carneca/Documents/Python/automation/bfetch/bfetch/tests/files/complicated_dictionary.json",
+        "r",
+    ) as f:
+        dic = json.load(f)
+
+        t = dic_to_tree(dic)
+        print(t.__str__())

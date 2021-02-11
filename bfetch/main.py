@@ -59,18 +59,6 @@ def arguments() -> Tuple[bool, float]:
     
     return args.show, speed
 
-def parse_args() -> arg.Namespace:
-    """Parses Argument given"""
-    parser = arg.ArgumentParser(description="Download files from blackboard")
-    fast = 1.5
-    slow = 0.1
-    default = 0.8
-    parser.add_argument("-s", "--show", action="store_true")
-    parser.add_argument("-S", action="store_const", default=default, const=fast)
-    parser.add_argument("-F", action="store_const", default=default, const=slow)
-    args = parser.parse_args()
-    return args
-
 def init_tree() -> FileTree:
     """
     Initialise Tree
@@ -131,6 +119,7 @@ def download_file(browser: WebDriver, node: Node) -> None:
 
 
 def files_folders(browser: WebDriver):
+    # Might be a bit slow
     pdf_link_tags, folders = find_links(browser)
 
     for tag in pdf_link_tags:
@@ -140,7 +129,6 @@ def files_folders(browser: WebDriver):
         # download_file(browser, file_node)
 
         TREE.insert(file_node, TREE.pointer)
-        print(f"{file_node.file.name} inserted.")
 
         # Mark the file as have been downloaded
         # Attach back to section node.
@@ -200,6 +188,7 @@ def make_tree(browser: WebDriver, module_tags: List[Tag]):
         TREE.attach_pointer(module_node.parent)
 
 
+
 def download_file_nodes(browser: WebDriver , tree: FileTree) -> None:
     """
     Goes through the tree and downloads nodes that have not been downloaded.
@@ -219,7 +208,6 @@ TREE = init_tree()
 def main():
 
     show, speed = arguments()
-    print(show, speed)
 
     SPEED = speed
 
@@ -238,7 +226,7 @@ def main():
 
     make_tree(browser, module_tags)
 
-    download_file_nodes(browser, TREE) 
+    # download_file_nodes(browser, TREE) 
 
     browser.quit()
 
@@ -252,7 +240,7 @@ if __name__ == "__main__":
         main()
     finally:
         TREE.write_to_file()
-        sort_to_folder_from_tree(TREE)
+        # sort_to_folder_from_tree(TREE)
 
         downloaded = [n for n in TREE.nodes if n.file.kind == 'file' and n.file.completed == True]
         print(
