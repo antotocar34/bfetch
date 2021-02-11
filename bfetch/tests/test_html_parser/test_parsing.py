@@ -26,6 +26,9 @@ class TestBrowser(unittest.TestCase):
         g_files = {"Syllabus & Introduction", "Reading List", "Slides - Introduction"}
         g_folders = {"Readings"}
 
+        print(files, g_files)
+        print(folders, g_folders)
+
         self.assertTrue(set(files) == g_files and set(folders) == g_folders)
         
 

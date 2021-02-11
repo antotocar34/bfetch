@@ -62,8 +62,10 @@ class Node:
     def __str__(self):
         return f'Node "{self.name}" {len(self.children)} children'
 
-    def __eq__(self, other):
-        return self.file == other.file
+    def __eq__(self, other) -> bool:
+        conds = [self.file == other.file,
+                 self.id == other.id]
+        return all(conds)
 
     # @property
     # def id(self):
@@ -303,7 +305,6 @@ class FileTree:
             json.dump(self.dictionary(), outfile, indent=4)
 
 
-# TODO finish this
 def dic_to_tree(dic: Dict[str, dict]) -> FileTree:
     """
     Takes a dictionary and converts it to a tree.
@@ -352,6 +353,13 @@ def dic_to_tree(dic: Dict[str, dict]) -> FileTree:
     #     tree.insert(module_node, tree.root)
     #     recurse(dic[module], module_node)
     return tree
+
+
+def load_tree_from_file(path: str) -> FileTree:
+    with open(path, 'r') as f:
+        dictionary = json.load(f)
+        return dic_to_tree(dictionary)
+
 
 
 if __name__ == "__main__":

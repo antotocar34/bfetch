@@ -5,12 +5,25 @@ import os
 from pathlib import Path
 
 import modules.config as g
+from modules.utils import normalize_name
 
 
 
 def file_node_to_path(tree: FileTree, node: Node) -> str:
     """
-    returns the path from module node to file.
+    Given a  tree of the form
+
+           root
+           /  \
+          m1   m2
+         /
+        s1
+       /
+      f1
+    
+    and the node 1, returns
+
+    m1.name/s1.name/f1.file.name
 
     """
     assert node.file.kind == "file"
@@ -45,7 +58,7 @@ def file_node_to_path(tree: FileTree, node: Node) -> str:
 
 
 # TODO investigate how the path should be return with normalized name
-def move_file_to_path(path: str, new_name: str) -> None:
+def move_file_to_path(node_path: str, new_name: str) -> None:
     """
     Takes a path and moves the name of the file in that path
     and moves dl_dir/file_name to path.
@@ -53,29 +66,35 @@ def move_file_to_path(path: str, new_name: str) -> None:
     # Checks that the path exists.
 
     dl_dir = Path(g.DOWNLOAD_PATH)
-    p: Path = Path(path)
+    p: Path = Path(node_path)
+
+    file_dirs = p.parent
     file_name = p.name
-    new_path: Path = p.parent / Path(new_name)
+    new_file_name = Path(new_name)
+
+    new_path: Path = p.parent / new_file_name
 
     try:
         assert (dl_dir / file_name).exists()
 
         if p.parent.exists() == False:
             p.parent.mkdir(parents=True, exist_ok=True)
-            (dl_dir / file_name).replace(new_path)
-        else:
-            (dl_dir / file_name).replace(new_path)
+        (dl_dir / file_name).replace(new_path)
     except AssertionError:
         if new_path.exists():
             return
         else:
+            print(f"{p.name}")
             print("THERE WAS A POTENTIAL PROBLEM")
             return 
 
 def handle_file_node(tree: FileTree, node: Node) -> None:
     path = file_node_to_path(tree, node)
     # Moves specific file node ot path
-    move_file_to_path(path, node.file.name)
+
+    assert node.file.file_name is not None
+    new_name = normalize_name(node.file.file_name)
+    move_file_to_path(path, new_name)
 
 
 def sort_to_folder_from_tree(tree: FileTree) -> None:

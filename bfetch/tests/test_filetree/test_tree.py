@@ -3,7 +3,8 @@ import unittest
 from pprint import pprint
 
 import modules.config as g
-from modules.filetree import Node, File, FileTree, dic_to_tree
+from modules.filetree import Node, File, FileTree
+from modules.filetree import load_tree_from_file, dic_to_tree
 
 
 def get_complicated_dictionary() -> dict:
@@ -42,7 +43,7 @@ class TestTree(unittest.TestCase):
     t_file1a = Node(File("file1a", "", "file"))
     t_file1b = Node(File("file1b", "", "file"))
 
-    t_root.children.append(mod1)
+    t_root.children.append(t_mod1)
 
     t_mod1.parent = t_root
     t_mod1.children.append(t_sec1)
@@ -172,7 +173,8 @@ class TestTree(unittest.TestCase):
 
         C = dic_to_tree(B)
 
-        self.assertEqual(A,C)
+        cond1 = all([n1 == n2 for n1,n2 in zip(A.nodes,C.nodes)])
+        self.assertTrue(cond1)
 
 
 
@@ -244,6 +246,13 @@ class TestTree(unittest.TestCase):
         tree = dic_to_tree(complicated_dictionary)
         string = tree.__str__()
         self.assertIs(type(string), str)
+
+    def test_load_tree_from_file(self):
+        file_path = f"{g.CODE_DIR}/tests/files/complicated_dictionary.json"
+        tree = load_tree_from_file(file_path)
+        print(tree)
+        self.assertIs(type(tree), FileTree)
+
 
 if __name__ == "__main__":
     unittest.main()

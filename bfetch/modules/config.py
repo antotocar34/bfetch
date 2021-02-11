@@ -2,6 +2,8 @@ import os
 
 PROJ_DIR = os.getenv("BFETCH")
 
+assert PROJ_DIR is not None, "No download folder configured"
+
 CODE_DIR = PROJ_DIR + "/bfetch"
 
 PATH_TO_CHROMEDRIVER = PROJ_DIR + '/chromedriver'

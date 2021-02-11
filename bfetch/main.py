@@ -31,7 +31,7 @@ from modules.html_parser import (
     get_module_tags,
 )
 
-from modules.filetree import FileTree, Node, File
+from modules.filetree import FileTree, Node, File, load_tree_from_file
 
 def arguments() -> Tuple[bool, float]:
     parser = arg.ArgumentParser(description="Download files from blackboard")
@@ -173,7 +173,7 @@ def make_tree(browser: WebDriver, module_tags: List[Tag]):
     Main Function of the program.
     Recursively goes through blackboard file structure.
     """
-    for tag in module_tags:
+    for tag in module_tags[:2]:
 
         module_node = tag_to_node(tag, "module")
 
@@ -201,11 +201,8 @@ def download_file_nodes(browser: WebDriver , tree: FileTree) -> None:
         download_file(browser, n)
     return None
 
-# GLOBAL VARIABLE
-# TODO move this
-TREE = init_tree()
 
-def main():
+def run_program():
 
     show, speed = arguments()
 
@@ -226,23 +223,30 @@ def main():
 
     make_tree(browser, module_tags)
 
-    # download_file_nodes(browser, TREE) 
+    download_file_nodes(browser, TREE) 
 
     browser.quit()
 
+try:
+    tree_path = f"{g.DATA_DIR}/noinuse.json"
+    TREE = load_tree_from_file(tree_path)
+except FileNotFoundError:
+    TREE = init_tree()
 
-
-if __name__ == "__main__":
+def main():
     try:
-        main()
+        run_program()
     except InvalidArgumentException:
         input("Close the previous browser window and then press enter.")
-        main()
+        run_program()
     finally:
         TREE.write_to_file()
-        # sort_to_folder_from_tree(TREE)
+        sort_to_folder_from_tree(TREE)
 
         downloaded = [n for n in TREE.nodes if n.file.kind == 'file' and n.file.completed == True]
         print(
             f"\n\nTotal downloaded: {len(downloaded)}"
         )
+
+if __name__ == "__main__":
+    main()

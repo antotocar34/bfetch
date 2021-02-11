@@ -60,7 +60,8 @@ def filter_function(tag: Tag) -> bool:
     """
     functions = [
             lambda t: type(t) is Tag, 
-            lambda t: bool(t.get("href"))
+            lambda t: bool(t.get("href")),
+            lambda t: t.text.endswith(".mp4")
             ]
     application: List[bool] = [f(tag) for f in functions]
     return all(application)
