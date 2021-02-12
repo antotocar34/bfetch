@@ -2,9 +2,9 @@ import json
 import unittest
 from pprint import pprint
 
-import modules.config as g
-from modules.filetree import Node, File, FileTree
-from modules.filetree import load_tree_from_file, dic_to_tree
+import bfetch.modules.config as g
+from bfetch.modules.filetree import Node, File, FileTree
+from bfetch.modules.filetree import load_tree_from_file, dic_to_tree
 
 
 def get_complicated_dictionary() -> dict:

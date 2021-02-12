@@ -1,7 +1,7 @@
 import unittest
 from pprint import pprint
 
-from modules.filetree import File, FileTree, Node, dic_to_tree
+from bfetch.modules.filetree import File, FileTree, Node, dic_to_tree
 
 class TestTransform(unittest.TestCase):
     """

@@ -1,8 +1,8 @@
 import unittest
 
-from modules.filehandler import file_node_to_path
-from modules.filetree import Node, File, FileTree
-import modules.config as g
+from bfetch.modules.filehandler import file_node_to_path
+from bfetch.modules.filetree import Node, File, FileTree
+import bfetch.modules.config as g
 
 
 class TestFileHandler(unittest.TestCase):

@@ -3,7 +3,7 @@ from argparse import Namespace
 
 from selenium.webdriver.chrome.webdriver import WebDriver
 
-from modules.browser_init import initialise_driver
+from bfetch.modules.browser_init import initialise_driver
 
 class TestBrowser(unittest.TestCase):
     def test_browser_init(self):
