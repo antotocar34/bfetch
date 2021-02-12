@@ -1,16 +1,16 @@
 from typing import List, Optional, Any, Dict, Tuple
-import uuid
 import json
 from pprint import pprint
 
-import modules.config as g
-
-# import config as g
+import bfetch.modules.config as g
 
 
 class File:
     """
     Contains data for nodes. That's it.
+
+    Files are of a certain kind. File is actually not
+    such a great name.
     """
 
     def __init__(
@@ -20,6 +20,7 @@ class File:
         kind: str,
         completed: bool = False,
         file_name: Optional[str] = None,
+        downloaded: bool = False
     ):
         # Name of tag
         self.name = name
@@ -27,7 +28,9 @@ class File:
         self.url = url
         assert kind in ["root", "module", "section", "file"]
         self.kind = kind
+        # Completed means that this file has been dealt with.
         self.completed = completed
+        self.downloaded = downloaded
 
     @property
     def data(self):
@@ -48,13 +51,19 @@ class File:
 
 
 class Node:
+    """
+    Nodes in the filetree.
+    Every node is create with a file object attached.
+
+    TODO make it so that Nodes don't actually
+    hold nodes in memory.
+    """
     def __init__(self, file_object: File):
         self.file = file_object
         self.name = file_object.name
         self.id = self.name + (
             str(tuple(d for d in self.file.data.values()).__hash__())
         )
-        # Whether this node has been downloaded
 
         self.parent: Optional[Node] = None
         self.children: List[Node] = []
@@ -67,13 +76,6 @@ class Node:
                  self.id == other.id]
         return all(conds)
 
-    # @property
-    # def id(self):
-    #     if hasattr(self, "identifier"):
-    #         return self.identifier
-    #     else:
-    #         return self.name + str(uuid.uuid1())
-
     @property
     def node_type(self) -> str:
         if self.children == [] and self.parent is not None:
@@ -83,35 +85,35 @@ class Node:
         else:
             return "subtree"
 
+    @property
+    def satisfied(self) -> bool:
+
+        if self.file.kind != "file":
+            return all([n.satisfied for n in self.children])
+        else:
+            return self.file.completed
+
+    @satisfied.setter
+    def satisfied(self, boolean: bool) -> None:
+        assert self.file.kind != "file"
+        self.file.completed = boolean
+
 
 def check_validity_of_order(child_node: Node, parent_node: Node) -> bool:
     """
-    node -> node -> Bool
-    Assures that inserts make sense.
+    Assures that inserts follow proper behaviour.
     """
     if parent_node is None:
         return True
 
-    # kinds -> [file, section, module, root]
-    if parent_node.file.kind == "root":
-        if child_node.file.kind == "module":
-            return True
-        else:
-            return False
-    if parent_node.file.kind == "module":
-        if child_node.file.kind == "section":
-            return True
-        else:
-            return False
-    if parent_node.file.kind == "section":
-        if any([child_node.file.kind == k for k in ["section", "file"]]):
-            return True
-        else:
-            return False
-    if parent_node.file.kind == "file":
-        return False
-    else:
-        return False
+    allowed = {
+            "root" : ["module"],
+            "module" : ["section"],
+            "section" : ["file", "section"],
+            "file"  : []
+            }
+
+    return child_node.file.kind in allowed[parent_node.file.kind]
 
 
 class FileTree:
@@ -208,39 +210,39 @@ class FileTree:
 
         return "\n".join(strings)
 
-    def print_subtree(self, node):
-        def depth_traversal(source_node) -> List[str]:
-            strings: List[str] = []
-            stack: List[Tuple[Node, int]] = []
-            visited: Dict[str, bool] = {n.id: False for n in self.nodes}
+    # def print_subtree(self, node):
+    #     def depth_traversal(source_node) -> List[str]:
+    #         strings: List[str] = []
+    #         stack: List[Tuple[Node, int]] = []
+    #         visited: Dict[str, bool] = {n.id: False for n in self.nodes}
 
-            stack.append((source_node, 0))
+    #         stack.append((source_node, 0))
 
-            while stack:
-                n, level = stack.pop()
+    #         while stack:
+    #             n, level = stack.pop()
 
-                if not visited[n.id]:
-                    string = ("\t" * level) + f"{n.name}"
-                    strings.append(string)
-                    visited[n.id] = True
+    #             if not visited[n.id]:
+    #                 string = ("\t" * level) + f"{n.name}"
+    #                 strings.append(string)
+    #                 visited[n.id] = True
 
-                # children = n.parent.children if n.node_type != "root" else []
+    #             # children = n.parent.children if n.node_type != "root" else []
 
-                if (
-                    all([not visited[c.id] for c in n.children])
-                    and n.children != []
-                ):
-                    level += 1
+    #             if (
+    #                 all([not visited[c.id] for c in n.children])
+    #                 and n.children != []
+    #             ):
+    #                 level += 1
 
-                for child in reversed(n.children):
-                    if not visited[child.id]:
-                        stack.append((child, level))
+    #             for child in reversed(n.children):
+    #                 if not visited[child.id]:
+    #                     stack.append((child, level))
 
-            return strings
+    #         return strings
 
-        strings = depth_traversal(node)
+    #     strings = depth_traversal(node)
 
-        print("\n".join(strings))
+    #     print("\n".join(strings))
 
     def get_module(self, node) -> Node:
         """
@@ -348,17 +350,17 @@ def dic_to_tree(dic: Dict[str, dict]) -> FileTree:
 
     tree = FileTree([Node(File("root", "", "root"))])
     recurse(dic, tree.root)
-    # for module in dic:
-    #     module_node = Node(File(module, "", "module"))
-    #     tree.insert(module_node, tree.root)
-    #     recurse(dic[module], module_node)
+
     return tree
 
 
 def load_tree_from_file(path: str) -> FileTree:
     with open(path, 'r') as f:
         dictionary = json.load(f)
-        return dic_to_tree(dictionary)
+        if bool(dictionary):
+            return dic_to_tree(dictionary)
+        else:
+            raise FileNotFoundError
 
 
 
