@@ -5,7 +5,7 @@ from selenium.webdriver.chrome.webdriver import WebDriver
 from bs4.element import Tag
 from bs4 import BeautifulSoup
 
-from modules.utils import make_soup
+from bfetch.modules.utils import make_soup
 
 
 # TODO Make sure this does not happend again.
@@ -58,12 +58,12 @@ def filter_function(tag: Tag) -> bool:
     """
     Tests that tags are valid.
     """
-    functions = [
+    predicates = [
             lambda t: type(t) is Tag, 
             lambda t: bool(t.get("href")),
-            lambda t: t.text.endswith(".mp4")
+            lambda t: not t.text.endswith(".mp4")
             ]
-    application: List[bool] = [f(tag) for f in functions]
+    application: List[bool] = [f(tag) for f in predicates]
     return all(application)
      
 
