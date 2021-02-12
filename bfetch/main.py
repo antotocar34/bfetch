@@ -38,9 +38,11 @@ from bfetch.modules.html_parser import (
 )
 
 from bfetch.modules.filehandler import (
-        sort_to_folder_from_tree,
-        download_file_nodes
+    sort_to_folder_from_tree,
+    download_file_nodes,
 )
+
+from bfetch.modules.downloader import download_nodes
 
 from bfetch.modules.filetree import FileTree, Node, File, load_tree_from_file
 
@@ -53,11 +55,6 @@ def init_tree() -> FileTree:
     root = Node(File("root", "", "root"))
     tree.insert(root)
     return tree
-
-
-# # Initialise the log file
-# log_file = g.DATA_DIR + "/selenium_blackboard.log"
-# logging.basicConfig(filename=log_file, level=logging.INFO, filemode="w")
 
 
 def follow_node(tree: FileTree, browser: WebDriver, node: Node) -> None:
@@ -143,7 +140,6 @@ def make_tree(tree: FileTree, browser: WebDriver, module_tags: List[Tag]):
         tree.attach_pointer(module_node.parent)
 
 
-
 def run_program(tree: FileTree):
 
     show, speed = arguments()
@@ -161,7 +157,7 @@ def run_program(tree: FileTree):
 
     make_tree(tree, browser, module_tags)
 
-    download_file_nodes(browser, tree)
+    download_nodes(browser, tree)
 
     browser.quit()
 
@@ -180,13 +176,6 @@ def main():
     finally:
         TREE.write_to_file()
         # sort_to_folder_from_tree(TREE)
-
-        downloaded = [
-            n
-            for n in TREE.nodes
-            if n.file.kind == "file" and n.file.completed == True
-        ]
-        print(f"\n\nTotal downloaded: {len(downloaded)}")
 
 
 if __name__ == "__main__":
