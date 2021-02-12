@@ -11,6 +11,7 @@ randomua = "^0.0.7"
 bs4 = "^0.0.1"
 ipython = "^7.20.0"
 pytest = "^6.2.2"
+timeout-decorator = "^0.5.0"
 
 [tool.poetry.dev-dependencies]
 

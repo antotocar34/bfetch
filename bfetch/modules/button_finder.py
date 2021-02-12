@@ -4,7 +4,7 @@ from typing import List, Callable
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException
-from .utils import get_request
+from bfetch.modules.utils import get_request
 
 
 def check_if_button_was_found(button: WebElement) -> bool:
