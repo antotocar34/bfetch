@@ -8,8 +8,8 @@ from selenium.webdriver.remote.webelement import WebElement
 from selenium.common.exceptions import TimeoutException
 from bs4.element import Tag
 
-from modules.button_finder import find_and_click_button
-from modules.utils import make_soup, get_request
+from bfetch.modules.button_finder import find_and_click_button
+from bfetch.modules.utils import make_soup, get_request
 
 
 def init_login_info(
@@ -26,7 +26,7 @@ def type_login_info(browser: WebDriver,
                     pword_form: WebElement) -> None:
     """Sends username and password to login form."""
     try:
-        from modules.secretss import username, password
+        from bfetch.modules.secretss import username, password
     except:
         message_u = "Please enter your blackboard username."
         message_p = "Please enter you blackboard password."
@@ -71,3 +71,11 @@ def log_in(browser: WebDriver):
     except Exception as e:
         pass
     return
+
+def click_module_list(browser: WebDriver):
+    # Click the Module List
+    find_and_click_button(
+        browser, xpath="""//*[@id="Module List"]/a""", id_string="Module List"
+    )
+    # DO NOT REMOVE
+    sleep(1)
