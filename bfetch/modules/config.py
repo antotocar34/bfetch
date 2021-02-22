@@ -14,3 +14,6 @@ DOWNLOAD_PATH = PROJ_DIR + "/downloads"
 
 # Default speed
 SPEED = 2
+
+# Time in seconds after which file download times out.
+DOWNLOAD_TIMEOUT = 30
